@@ -18,11 +18,12 @@ router.post("/process-pdf", upload.single("file"), async (req, res) => {
       });
     }
 
-    const extractedText = await processPdf(file.buffer);
+    const json = await processPdf(file.buffer);
 
     return res.json({
       success: true,
-      text: extractedText,
+      markdown: json.markdown,
+      title: json.title,
     });
   } catch (error) {
     console.error(error);

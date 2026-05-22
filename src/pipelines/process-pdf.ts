@@ -15,7 +15,14 @@ export async function processPdf(buffer: Buffer) {
     contents: summarizePdfPrompt(text),
   });
 
-  const markdown = response.text || "";
+  const raw = response.text || "{}";
 
-  return markdown;
+  const cleaned = raw
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim();
+
+  const parsed = JSON.parse(cleaned);
+
+  return parsed;
 }
