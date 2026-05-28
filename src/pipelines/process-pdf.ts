@@ -1,8 +1,11 @@
 import { PDFParse } from "pdf-parse";
-import { ai } from "../providers/gemini.js";
-import { summarizePdfPrompt } from "../prompts/summarize-pdf.js";
+import { cleanText } from "../lib/utils.js";
+import { summarizeDirect } from "./summarize-direct.js";
+import { summarizeLargePdf } from "./summarize-large-pdf.js";
 
-export async function processPdf(buffer: Buffer) {
+const LARGE_PDF_THRESHOLD = 15000;
+
+export const processPdf = async (buffer: Buffer) => {
   const parser = new PDFParse({
     data: buffer,
   });
@@ -10,19 +13,15 @@ export async function processPdf(buffer: Buffer) {
   const result = await parser.getText();
   const text = result.text;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-2.5-flash",
-    contents: summarizePdfPrompt(text),
-  });
+  const cleaned = cleanText(text);
+  
+  if (cleaned.length < LARGE_PDF_THRESHOLD) {
+    console.log("Using direct summarization");
 
-  const raw = response.text || "{}";
+    return summarizeDirect(cleaned);
+  }
 
-  const cleaned = raw
-    .replace(/```json/g, "")
-    .replace(/```/g, "")
-    .trim();
+  console.log("Using large PDF pipeline");
 
-  const parsed = JSON.parse(cleaned);
-
-  return parsed;
-}
+  return summarizeLargePdf(cleaned);
+};
